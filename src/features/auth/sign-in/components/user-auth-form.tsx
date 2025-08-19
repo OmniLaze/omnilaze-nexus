@@ -16,17 +16,15 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/password-input'
+import { api } from '@/lib/api'
+import { useAuthStore } from '@/stores/authStore'
+import { useNavigate } from '@tanstack/react-router'
 
 type UserAuthFormProps = HTMLAttributes<HTMLFormElement>
 
 const formSchema = z.object({
-  email: z.email({
-    error: (iss) => (iss.input === '' ? 'Please enter your email' : undefined),
-  }),
-  password: z
-    .string()
-    .min(1, 'Please enter your password')
-    .min(7, 'Password must be at least 7 characters long'),
+  email: z.string().min(1, 'Please enter your username'),
+  password: z.string().min(1, 'Please enter your password'),
 })
 
 export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
@@ -40,14 +38,26 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
     },
   })
 
-  function onSubmit(data: z.infer<typeof formSchema>) {
-    setIsLoading(true)
-    // eslint-disable-next-line no-console
-    console.log(data)
+  const navigate = useNavigate()
+  const setToken = useAuthStore((s) => s.auth.setAccessToken)
 
-    setTimeout(() => {
+  async function onSubmit(data: z.infer<typeof formSchema>) {
+    try {
+      setIsLoading(true)
+      const res = await api.post('/v1/admin/auth/login', {
+        username: data.email,
+        password: data.password,
+      })
+      if (!res.data?.success) throw new Error(res.data?.message || '登录失败')
+      const token = res.data?.data?.access_token
+      if (!token) throw new Error('登录返回无token')
+      setToken(token)
+      navigate({ to: '/orders' })
+    } catch (e: any) {
+      form.setError('password', { message: e?.message || '登录失败' })
+    } finally {
       setIsLoading(false)
-    }, 3000)
+    }
   }
 
   return (
@@ -62,9 +72,9 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
           name='email'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>Username</FormLabel>
               <FormControl>
-                <Input placeholder='name@example.com' {...field} />
+                <Input placeholder='admin' {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
