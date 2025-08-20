@@ -23,4 +23,22 @@ export default defineConfig({
       '@tabler/icons-react': '@tabler/icons-react/dist/esm/icons/index.mjs',
     },
   },
+  server: {
+    proxy: {
+      '/v1': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        secure: false,
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            // Add system key header for admin endpoints
+            if (req.url?.includes('/admin/')) {
+              const systemKey = process.env.VITE_SYSTEM_API_KEY || 'test-system-key-change-in-production';
+              proxyReq.setHeader('X-System-Key', systemKey);
+            }
+          });
+        }
+      }
+    }
+  }
 })
