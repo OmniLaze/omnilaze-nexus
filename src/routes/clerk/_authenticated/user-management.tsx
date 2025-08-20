@@ -72,10 +72,10 @@ function UserManagement() {
                     <p>
                       This is the same as{' '}
                       <Link
-                        to='/users'
+                        to='/admin/users'
                         className='text-blue-500 underline decoration-dashed underline-offset-2'
                       >
-                        '/users'
+                        '/admin/users'
                       </Link>
                     </p>
 
@@ -138,10 +138,10 @@ function Unauthorized() {
               <p>
                 This is the same as{' '}
                 <Link
-                  to='/users'
+                  to='/admin/users'
                   className='text-blue-500 underline decoration-dashed underline-offset-2'
                 >
-                  '/users'
+                  '/admin/users'
                 </Link>
                 .{' '}
               </p>

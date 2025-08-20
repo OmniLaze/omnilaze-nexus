@@ -14,6 +14,9 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 
 # 设置构建环境变量
+# 注意：VITE_BASE_PATH 用于配置前端在生产的路径前缀（规范：/admin/）
+ARG VITE_BASE_PATH=/admin/
+ENV VITE_BASE_PATH=${VITE_BASE_PATH}
 ENV VITE_API_BASE_URL=/v1
 ENV NODE_ENV=production
 
@@ -23,8 +26,8 @@ RUN pnpm run build
 # 运行阶段
 FROM nginx:alpine
 
-# 复制构建产物
-COPY --from=builder /app/dist /usr/share/nginx/html
+# 复制构建产物到 /admin 子目录，配合 VITE_BASE_PATH=/admin/
+COPY --from=builder /app/dist /usr/share/nginx/html/admin
 
 # 复制 nginx 配置
 COPY nginx.conf /etc/nginx/conf.d/default.conf

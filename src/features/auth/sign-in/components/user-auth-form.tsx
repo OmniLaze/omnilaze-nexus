@@ -52,7 +52,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
       const token = res.data?.data?.access_token
       if (!token) throw new Error('登录返回无token')
       setToken(token)
-      navigate({ to: '/orders' })
+      navigate({ to: '/admin/orders' })
     } catch (e: any) {
       form.setError('password', { message: e?.message || '登录失败' })
     } finally {

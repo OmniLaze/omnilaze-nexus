@@ -14,10 +14,12 @@ api.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`
   }
   
-  // 添加系统密钥用于管理端点
-  const systemKey = 'test-system-key-change-in-production'
-  config.headers = config.headers || {}
-  config.headers['X-System-Key'] = systemKey
+  // 添加系统密钥用于管理端点（从环境变量读取）
+  const systemKey = import.meta.env.VITE_SYSTEM_API_KEY
+  if (systemKey) {
+    config.headers = config.headers || {}
+    config.headers['X-System-Key'] = systemKey
+  }
   
   return config
 })

@@ -25,6 +25,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
 import { useState } from 'react'
+import { useAuthStore } from '@/stores/authStore'
 
 const formSchema = z.object({
   code: z.string().min(1, '邀请码不能为空').max(50, '邀请码长度不能超过50个字符'),

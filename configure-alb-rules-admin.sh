@@ -53,6 +53,15 @@ fi
 
 echo "✅ 找到后端目标组: $BACKEND_TG_ARN"
 
+# 确保 /v1/* → Backend 路由规则存在（如已存在则跳过）
+echo "📋 校验 /v1/* → Backend 路由规则..."
+aws elbv2 create-rule \
+    --listener-arn "$HTTPS_LISTENER_ARN" \
+    --priority 1 \
+    --conditions Field=path-pattern,Values="/v1/*" \
+    --actions Type=forward,TargetGroupArn="$BACKEND_TG_ARN" \
+    --region "$REGION" >/dev/null 2>&1 || echo "规则可能已存在，继续..."
+
 # 策略：为 Nexus 创建 /admin/* 路径规则，保持默认规则指向后端
 echo "📋 创建 /admin/* → Nexus 路由规则..."
 aws elbv2 create-rule \

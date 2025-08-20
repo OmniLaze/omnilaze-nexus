@@ -6,6 +6,9 @@ import { tanstackRouter } from '@tanstack/router-plugin/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Serve under a configurable base path for production (e.g. /admin/)
+  // This enables clean ALB path routing without extra static rules.
+  base: process.env.VITE_BASE_PATH || '/',
   plugins: [
     tanstackRouter({
       target: 'react',

@@ -1,5 +1,5 @@
 import Cookies from 'js-cookie'
-import { Outlet, redirect } from '@tanstack/react-router'
+import { Outlet } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 import { SearchProvider } from '@/context/search-context'
 import { SidebarProvider } from '@/components/ui/sidebar'
