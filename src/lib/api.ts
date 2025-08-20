@@ -13,12 +13,12 @@ api.interceptors.request.use((config) => {
     config.headers = config.headers || {}
     config.headers.Authorization = `Bearer ${token}`
   }
-  // Optional: system key for admin endpoints
-  const systemKey = (import.meta as any).env?.VITE_SYSTEM_API_KEY as string | undefined
-  if (systemKey) {
-    config.headers = config.headers || {}
-    ;(config.headers as any)['X-System-Key'] = systemKey
-  }
+  
+  // 添加系统密钥用于管理端点
+  const systemKey = 'test-system-key-change-in-production'
+  config.headers = config.headers || {}
+  config.headers['X-System-Key'] = systemKey
+  
   return config
 })
 

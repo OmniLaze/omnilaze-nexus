@@ -1,10 +1,7 @@
-import React, { useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 
 export function QuickAdminAuth() {
-  const [token, setToken] = useState('');
   const { setAccessToken } = useAuthStore((state) => state.auth);
 
   const handleSetToken = () => {

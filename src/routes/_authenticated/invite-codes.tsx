@@ -4,8 +4,11 @@ import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { ProfileDropdown } from '@/components/profile-dropdown'
+import { Button } from '@/components/ui/button'
+import { IconPlus } from '@tabler/icons-react'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
+import { CreateInviteCodeDialog } from '@/features/invite-codes/components/create-invite-code-dialog'
 
 type InviteCodeRow = {
   code: string
@@ -35,6 +38,7 @@ function InviteCodesPage() {
   const [codes, setCodes] = useState<InviteCodeRow[]>([])
   const [invitations, setInvitations] = useState<InvitationRow[]>([])
   const [loading, setLoading] = useState(false)
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
 
   const fetchCodes = async () => {
     try {
@@ -78,6 +82,12 @@ function InviteCodesPage() {
       <Main>
         <div className='mb-2 flex items-center justify-between'>
           <h1 className='text-2xl font-bold tracking-tight'>邀请管理</h1>
+          {tab === 'codes' && (
+            <Button onClick={() => setCreateDialogOpen(true)}>
+              <IconPlus className='mr-2' size={16} />
+              创建邀请码
+            </Button>
+          )}
         </div>
         <div className='mb-3 flex items-center gap-2'>
           <button
@@ -148,6 +158,16 @@ function InviteCodesPage() {
           </div>
         )}
       </Main>
+      
+      <CreateInviteCodeDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onSuccess={() => {
+          if (tab === 'codes') {
+            fetchCodes()
+          }
+        }}
+      />
     </>
   )
 }
