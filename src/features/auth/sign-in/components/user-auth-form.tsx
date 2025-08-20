@@ -44,7 +44,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
   async function onSubmit(data: z.infer<typeof formSchema>) {
     try {
       setIsLoading(true)
-      const res = await api.post('/v1/admin/auth/login', {
+      const res = await api.post('/admin/auth/login', {
         username: data.email,
         password: data.password,
       })

@@ -54,7 +54,14 @@ export function CreateInviteCodeDialog({ open, onOpenChange, onSuccess }: Props)
   const onSubmit = async (values: CreateInviteCodeForm) => {
     try {
       setLoading(true)
-      const res = await api.post('/v1/admin/create-invite-code', values)
+      
+      // 检查认证状态
+      const currentToken = useAuthStore.getState().auth.accessToken
+      console.log('当前认证状态:', currentToken ? '已认证' : '未认证')
+      
+      console.log('发送请求到:', '/admin/create-invite-code', 'with values:', values)
+      const res = await api.post('/admin/create-invite-code', values)
+      console.log('收到响应:', res.status, res.data)
       
       if (!res.data?.success) {
         throw new Error(res.data?.message || '创建失败')
@@ -65,7 +72,19 @@ export function CreateInviteCodeDialog({ open, onOpenChange, onSuccess }: Props)
       onOpenChange(false)
       onSuccess?.()
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || error?.message || '创建邀请码失败')
+      console.error('创建邀请码错误:', error)
+      console.error('错误响应:', error?.response)
+      
+      let errorMessage = '创建邀请码失败'
+      if (error?.response?.status === 500) {
+        errorMessage = '服务器内部错误，请检查认证状态或联系管理员'
+      } else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message
+      } else if (error?.message) {
+        errorMessage = error.message
+      }
+      
+      toast.error(`创建失败: ${errorMessage}`)
     } finally {
       setLoading(false)
     }

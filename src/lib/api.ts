@@ -47,19 +47,19 @@ export type AdminPayment = {
 }
 
 export async function listPaymentsByOrder(orderId: string) {
-  const res = await api.get(`/v1/admin/payments/order/${orderId}`)
+  const res = await api.get(`/admin/payments/order/${orderId}`)
   if (!res.data?.success) throw new Error(res.data?.message || '获取支付记录失败')
   return res.data.data as AdminPayment[]
 }
 
 export async function refundPaymentAdmin(paymentId: string, params: { amount?: number; reason?: string }) {
-  const res = await api.post(`/v1/admin/payments/${paymentId}/refund`, params)
+  const res = await api.post(`/admin/payments/${paymentId}/refund`, params)
   if (!res.data?.success) throw new Error(res.data?.message || '退款失败')
   return res.data
 }
 
 export async function getRefundStatus(paymentId: string) {
-  const res = await api.get(`/v1/admin/payments/${paymentId}/refund-status`)
+  const res = await api.get(`/admin/payments/${paymentId}/refund-status`)
   if (!res.data?.success) throw new Error(res.data?.message || '查询退款状态失败')
   return res.data.data as {
     paymentId: string
@@ -74,7 +74,7 @@ export async function getRefundStatus(paymentId: string) {
 }
 
 export async function syncPaymentStatus(paymentId: string) {
-  const res = await api.post(`/v1/admin/payments/${paymentId}/sync-status`)
+  const res = await api.post(`/admin/payments/${paymentId}/sync-status`)
   if (!res.data?.success) throw new Error(res.data?.message || '同步失败')
   return res.data
 }

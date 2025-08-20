@@ -7,7 +7,7 @@ import { ProfileDropdown } from '@/components/profile-dropdown'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
 
-export const Route = createFileRoute('/_authenticated/devops')({
+export const Route = createFileRoute('/admin/devops')({
   component: DevOpsPage,
 })
 
@@ -18,7 +18,7 @@ function DevOpsPage() {
   const triggerDeploy = async () => {
     try {
       setBusy(true)
-      const res = await api.post('/v1/admin/aws/deploy', { ref: 'main' })
+      const res = await api.post('/admin/aws/deploy', { ref: 'main' })
       if (!res.data?.success) throw new Error(res.data?.message || '触发失败')
       toast.success('已触发部署')
     } catch (e: any) {
@@ -30,7 +30,7 @@ function DevOpsPage() {
   const fetchStatus = async () => {
     try {
       setStatusBusy(true)
-      const res = await api.get('/v1/admin/aws/status', { params: { per_page: 3 } })
+      const res = await api.get('/admin/aws/status', { params: { per_page: 3 } })
       if (!res.data?.success) throw new Error(res.data?.message || '查询失败')
       setLastRuns(res.data?.data?.runs || [])
       toast.success('已获取部署状态')

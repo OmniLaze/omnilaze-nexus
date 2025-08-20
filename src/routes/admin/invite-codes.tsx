@@ -29,7 +29,7 @@ type InvitationRow = {
   invitedAt: string
 }
 
-export const Route = createFileRoute('/_authenticated/invite-codes')({
+export const Route = createFileRoute('/admin/invite-codes')({
   component: InviteCodesPage,
 })
 
@@ -43,7 +43,7 @@ function InviteCodesPage() {
   const fetchCodes = async () => {
     try {
       setLoading(true)
-      const res = await api.get('/v1/admin/invite-codes')
+      const res = await api.get('/admin/invite-codes')
       if (!res.data?.success) throw new Error(res.data?.message || '加载失败')
       setCodes(res.data.data || [])
     } catch (e: any) {
@@ -55,7 +55,7 @@ function InviteCodesPage() {
   const fetchInvitations = async () => {
     try {
       setLoading(true)
-      const res = await api.get('/v1/admin/invitations', { params: { limit: 100 } })
+      const res = await api.get('/admin/invitations', { params: { limit: 100 } })
       if (!res.data?.success) throw new Error(res.data?.message || '加载失败')
       setInvitations(res.data.data?.items || [])
     } catch (e: any) {

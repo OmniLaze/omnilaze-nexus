@@ -52,28 +52,28 @@ export const sidebarData: SidebarData = {
       items: [
         {
           title: 'Dashboard',
-          url: '/',
+          url: '/admin/',
           icon: IconLayoutDashboard,
         },
         {
           title: 'Tasks',
-          url: '/tasks',
+          url: '/admin/tasks',
           icon: IconChecklist,
         },
         {
           title: 'Apps',
-          url: '/apps',
+          url: '/admin/apps',
           icon: IconPackages,
         },
         {
           title: 'Chats',
-          url: '/chats',
+          url: '/admin/chats',
           badge: '3',
           icon: IconMessages,
         },
         {
           title: 'Users',
-          url: '/users',
+          url: '/admin/users',
           icon: IconUsers,
         },
         {
@@ -167,34 +167,34 @@ export const sidebarData: SidebarData = {
           items: [
             {
               title: 'Profile',
-              url: '/settings',
+              url: '/admin/settings',
               icon: IconUserCog,
             },
             {
               title: 'Account',
-              url: '/settings/account',
+              url: '/admin/settings/account',
               icon: IconTool,
             },
             {
               title: 'Appearance',
-              url: '/settings/appearance',
+              url: '/admin/settings/appearance',
               icon: IconPalette,
             },
             {
               title: 'Notifications',
-              url: '/settings/notifications',
+              url: '/admin/settings/notifications',
               icon: IconNotification,
             },
             {
               title: 'Display',
-              url: '/settings/display',
+              url: '/admin/settings/display',
               icon: IconBrowserCheck,
             },
           ],
         },
         {
           title: 'Help Center',
-          url: '/help-center',
+          url: '/admin/help-center',
           icon: IconHelp,
         },
       ],

@@ -25,10 +25,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {
           title: 'Admin',
           items: [
-            { title: 'Orders', url: '/orders' },
-            { title: 'Users', url: '/users' },
-            { title: 'Invite Codes', url: '/invite-codes' },
-            { title: 'DevOps', url: '/devops' },
+            { title: 'Orders', url: '/admin/orders' },
+            { title: 'Users', url: '/admin/users' },
+            { title: 'Invite Codes', url: '/admin/invite-codes' },
+            { title: 'DevOps', url: '/admin/devops' },
           ],
         },
       ],

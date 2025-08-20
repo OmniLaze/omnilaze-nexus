@@ -17,7 +17,7 @@ type AdminUser = {
   userSequence?: number | null
 }
 
-export const Route = createFileRoute('/_authenticated/users')({
+export const Route = createFileRoute('/admin/users')({
   component: UsersPage,
 })
 
@@ -30,7 +30,7 @@ function UsersPage() {
 
   const fetchUsers = async () => {
     try {
-      const res = await api.get('/v1/admin/users', { params: { q, page, limit } })
+      const res = await api.get('/admin/users', { params: { q, page, limit } })
       if (!res.data?.success) throw new Error(res.data?.message || '加载失败')
       setItems(res.data.data?.items || [])
       setTotal(res.data.data?.total || 0)

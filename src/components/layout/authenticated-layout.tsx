@@ -1,11 +1,13 @@
 import Cookies from 'js-cookie'
-import { Outlet, Navigate } from '@tanstack/react-router'
+import { Outlet, redirect } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 import { SearchProvider } from '@/context/search-context'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/layout/app-sidebar'
 import SkipToMain from '@/components/skip-to-main'
 import { useAuthStore } from '@/stores/authStore'
+import { useEffect } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 
 interface Props {
   children?: React.ReactNode
@@ -13,12 +15,32 @@ interface Props {
 
 export function AuthenticatedLayout({ children }: Props) {
   const token = useAuthStore((s) => s.auth.accessToken)
+  const navigate = useNavigate()
   const defaultOpen = Cookies.get('sidebar_state') !== 'false'
+  
+  useEffect(() => {
+    if (!token) {
+      navigate({ to: '/admin/login' })
+    }
+  }, [token, navigate])
+  
+  // 如果没有token，显示加载状态等待重定向
+  if (!token) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">正在跳转到登录页...</p>
+        </div>
+      </div>
+    )
+  }
+  
   return (
     <SearchProvider>
       <SidebarProvider defaultOpen={defaultOpen}>
         <SkipToMain />
-        {token ? <AppSidebar /> : null}
+        <AppSidebar />
         <div
           id='content'
           className={cn(
@@ -31,11 +53,7 @@ export function AuthenticatedLayout({ children }: Props) {
             'has-[main.fixed-main]:group-data-[scroll-locked=1]/body:h-svh'
           )}
         >
-          {!token ? (
-            <Navigate to='/sign-in' />
-          ) : (
-            children ? children : <Outlet />
-          )}
+          {children ? children : <Outlet />}
         </div>
       </SidebarProvider>
     </SearchProvider>

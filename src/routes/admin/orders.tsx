@@ -60,7 +60,7 @@ type AdminOrderDetail = AdminOrder & {
   }>
 }
 
-export const Route = createFileRoute('/_authenticated/orders')({
+export const Route = createFileRoute('/admin/orders')({
   component: OrdersPage,
 })
 
@@ -80,7 +80,7 @@ function OrdersPage() {
       const params: any = { limit: 50 }
       if (status) params.status = status
       if (incremental && since) params.since = since
-      const res = await api.get('/v1/admin/orders', { params })
+      const res = await api.get('/admin/orders', { params })
       if (!res.data?.success) throw new Error(res.data?.message || '加载失败')
       const list: AdminOrder[] = res.data.data?.items || []
       const nextSince: string | null = res.data.data?.next_since || null
@@ -156,7 +156,7 @@ function OrdersPage() {
     const url = window.prompt(`为订单 ${order.orderNumber} 绑定到达图片 URL：`, '')
     if (!url) return
     try {
-      const res = await api.post(`/v1/orders/${order.id}/arrival-image/import`, { image_url: url })
+      const res = await api.post(`/admin/orders/${order.id}/arrival-image/import`, { image_url: url })
       if (!res.data?.success) throw new Error(res.data?.message || '导入失败')
       toast.success('导入成功')
       // 更新该行
@@ -173,7 +173,7 @@ function OrdersPage() {
     ;(async () => {
       try {
         setLoadingDetail(true)
-        const res = await api.get(`/v1/admin/orders/${o.id}`)
+        const res = await api.get(`/admin/orders/${o.id}`)
         if (res.data?.success) {
           const d: AdminOrderDetail = res.data.data
           // 解析 JSON 字段（如果是字符串）
@@ -195,7 +195,7 @@ function OrdersPage() {
     try {
       const fd = new FormData()
       fd.append('file', file)
-      const res = await api.post(`/v1/admin/orders/${order.id}/arrival-image/upload`, fd, {
+      const res = await api.post(`/admin/orders/${order.id}/arrival-image/upload`, fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       if (!res.data?.success) throw new Error(res.data?.message || '上传失败')
