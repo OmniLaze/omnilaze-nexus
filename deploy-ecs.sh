@@ -38,8 +38,13 @@ IMAGE="$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPO:$TAG"
 aws ecr get-login-password --region "$REGION" | \
     docker login --username AWS --password-stdin "$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com"
 
-# 构建镜像
-docker build -t "$IMAGE" .
+# 构建镜像（可选传入 SYSTEM_API_KEY 用于前端打包 X-System-Key）
+BUILD_ARGS=""
+if [ -n "${SYSTEM_API_KEY:-}" ]; then
+  echo "🔑 使用 SYSTEM_API_KEY 构建（仅用于演示，生产不建议在前端内嵌）"
+  BUILD_ARGS="--build-arg VITE_SYSTEM_API_KEY=$SYSTEM_API_KEY"
+fi
+docker build --platform linux/amd64 $BUILD_ARGS -t "$IMAGE" .
 echo "📤 推送镜像到 ECR..."
 docker push "$IMAGE"
 echo "✅ 镜像推送完成: $IMAGE"

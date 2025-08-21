@@ -16,9 +16,16 @@ COPY . .
 # 设置构建环境变量
 # 注意：VITE_BASE_PATH 用于配置前端在生产的路径前缀（规范：/admin/）
 ARG VITE_BASE_PATH=/admin/
+ARG VITE_SYSTEM_API_KEY=
+ARG VITE_API_BASE_URL=/v1
+
 ENV VITE_BASE_PATH=${VITE_BASE_PATH}
-ENV VITE_API_BASE_URL=/v1
+ENV VITE_SYSTEM_API_KEY=${VITE_SYSTEM_API_KEY}
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 ENV NODE_ENV=production
+
+# Debug: 显示构建时的环境变量
+RUN echo "VITE_BASE_PATH: ${VITE_BASE_PATH}" && echo "构建参数检查完成"
 
 # 构建项目
 RUN pnpm run build
