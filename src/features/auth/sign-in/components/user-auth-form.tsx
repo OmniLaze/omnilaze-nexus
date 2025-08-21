@@ -44,6 +44,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
   async function onSubmit(data: z.infer<typeof formSchema>) {
     try {
       setIsLoading(true)
+      console.log('Login attempt:', { username: data.email, password: '***' })
       const res = await api.post('/admin/auth/login', {
         username: data.email,
         password: data.password,
@@ -51,10 +52,19 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
       if (!res.data?.success) throw new Error(res.data?.message || '登录失败')
       const token = res.data?.data?.access_token
       if (!token) throw new Error('登录返回无token')
+      
+      console.log('Login success - Token received:', token ? `${token.substring(0, 20)}...` : 'No token')
       setToken(token)
+      
+      // Verify token was stored
+      const storedToken = useAuthStore.getState().auth.accessToken
+      console.log('Token stored in Zustand:', storedToken ? `${storedToken.substring(0, 20)}...` : 'Not stored')
+      
       navigate({ to: '/admin/orders' })
     } catch (e: any) {
-      form.setError('password', { message: e?.message || '登录失败' })
+      console.error('Login error:', e)
+      const errorMessage = e?.response?.data?.message || e?.message || '登录失败'
+      form.setError('password', { message: errorMessage })
     } finally {
       setIsLoading(false)
     }

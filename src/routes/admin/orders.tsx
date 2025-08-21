@@ -21,6 +21,8 @@ type AdminOrder = {
   deliveryTime?: string | null
   dietaryRestrictions?: string | null
   foodPreferences?: string | null
+  paymentStatus?: string | null
+  paidAt?: string | null
 }
 
 type AdminOrderDetail = AdminOrder & {
@@ -68,6 +70,8 @@ function OrdersPage() {
   const [items, setItems] = useState<AdminOrder[]>([])
   const [status, setStatus] = useState<string>('')
   const [autoRefresh, setAutoRefresh] = useState(true)
+  const [viewMode, setViewMode] = useState<'table' | 'card'>('table')
+  const [paidOnly, setPaidOnly] = useState(false)
   const [since, setSince] = useState<string>('')
   const timerRef = useRef<number | null>(null)
   const [selected, setSelected] = useState<AdminOrder | null>(null)
@@ -120,7 +124,7 @@ function OrdersPage() {
 
   useEffect(() => {
     if (autoRefresh) {
-      timerRef.current = window.setInterval(() => fetchOnce(true), 2000)
+      timerRef.current = window.setInterval(() => fetchOnce(true), 60 * 1000)
       return () => {
         if (timerRef.current) window.clearInterval(timerRef.current)
       }
@@ -151,6 +155,47 @@ function OrdersPage() {
     a.click()
     URL.revokeObjectURL(url)
   }
+
+  const copyText = async (label: string, text?: string | null) => {
+    try {
+      if (!text) throw new Error('无内容')
+      await navigator.clipboard.writeText(String(text))
+      toast.success(`${label} 已复制`)
+    } catch {
+      try {
+        const ta = document.createElement('textarea')
+        ta.value = String(text || '')
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+        toast.success(`${label} 已复制`)
+      } catch {
+        toast.error('复制失败')
+      }
+    }
+  }
+
+  const isFinished = (o: AdminOrder) => o.status === 'completed' || o.status === 'cancelled' || !!o.arrivalImageUrl
+
+  const updateStatus = async (o: AdminOrder, next: string) => {
+    try {
+      const res = await api.post(`/admin/orders/${o.id}/status`, { status: next })
+      if (!res.data?.success) throw new Error(res.data?.message || '更新失败')
+      setItems(prev => prev.map(it => (it.id === o.id ? { ...it, status: next } : it)))
+      toast.success('状态已更新')
+    } catch (e: any) {
+      toast.error(e?.message || '更新失败')
+    }
+  }
+
+  const Field = ({ label, value, onCopy }: { label: string; value?: string | null; onCopy: () => void }) => (
+    <div className='flex items-start gap-2'>
+      <div className='shrink-0 w-16 text-xs text-gray-500'>{label}</div>
+      <div className='flex-1 break-words'>{value || '—'}</div>
+      <button className='shrink-0 rounded border px-2 py-0.5 text-xs hover:bg-gray-50' onClick={onCopy}>复制</button>
+    </div>
+  )
 
   const bindArrivalImage = async (order: AdminOrder) => {
     const url = window.prompt(`为订单 ${order.orderNumber} 绑定到达图片 URL：`, '')
@@ -229,6 +274,15 @@ function OrdersPage() {
       <Main>
         <div className='mb-2 flex items-center justify-between'>
           <h1 className='text-2xl font-bold tracking-tight'>订单管理</h1>
+          <div className='flex items-center gap-2'>
+            <label className='flex items-center gap-2 text-sm'>
+              <input type='checkbox' checked={paidOnly} onChange={(e) => setPaidOnly(e.target.checked)} />
+              只显示已付款
+            </label>
+            <button onClick={() => setViewMode(v => (v === 'table' ? 'card' : 'table'))} className='h-9 rounded-md border bg-white px-3 text-sm hover:bg-gray-50'>
+              {viewMode === 'table' ? '卡片视图' : '表格视图'}
+            </button>
+          </div>
         </div>
 
         <div className='mb-3 flex flex-wrap items-center gap-3'>
@@ -247,7 +301,7 @@ function OrdersPage() {
           </select>
           <label className='flex items-center gap-2 text-sm'>
             <input type='checkbox' checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />
-            自动刷新(2s)
+            自动刷新(1m)
           </label>
           <button
             onClick={() => fetchOnce(false)}
@@ -264,6 +318,7 @@ function OrdersPage() {
           <div className='text-xs text-muted-foreground'>最新时间：{latestTime}</div>
         </div>
 
+        {viewMode === 'table' ? (
         <div className='overflow-auto rounded-md border'>
           <table className='min-w-[1300px] w-full text-sm'>
             <thead className='bg-gray-50 text-left'>
@@ -283,7 +338,7 @@ function OrdersPage() {
               </tr>
             </thead>
             <tbody>
-              {items.map((o) => (
+              {(paidOnly ? items.filter(i => i.paidAt || i.paymentStatus === 'paid') : items).map((o) => (
                 <tr key={o.id} className='border-t hover:bg-gray-50 cursor-pointer' onClick={() => openDetail(o)}>
                   <td className='px-3 py-2 font-mono'>{o.orderNumber}</td>
                   <td className='px-3 py-2'>{o.status}</td>
@@ -325,6 +380,75 @@ function OrdersPage() {
             </tbody>
           </table>
         </div>
+        ) : (
+          <div className='grid grid-cols-1 gap-4 lg:grid-cols-2'>
+            <div>
+              <div className='mb-2 text-sm font-semibold'>未结束</div>
+              <div className='flex flex-col gap-3'>
+                {(paidOnly ? items.filter(i => i.paidAt || i.paymentStatus === 'paid') : items).filter(o => !isFinished(o)).map((o) => (
+                  <div key={o.id} className='rounded-lg border p-3 shadow-sm bg-white dark:bg-slate-900'>
+                    <div className='flex items-center justify-between'>
+                      <div className='font-mono text-xs text-gray-500'>#{o.orderNumber}</div>
+                      <select value={o.status} onChange={(e) => updateStatus(o, e.target.value)} className='h-8 rounded-md border px-2 text-xs'>
+                        <option value='draft'>草稿</option>
+                        <option value='submitted'>已提交</option>
+                        <option value='processing'>处理中</option>
+                        <option value='delivering'>配送中</option>
+                        <option value='completed'>已完成</option>
+                        <option value='cancelled'>已取消</option>
+                      </select>
+                    </div>
+                    <div className='mt-2 grid grid-cols-1 gap-2 text-sm'>
+                      <Field label='地址' value={o.deliveryAddress} onCopy={() => copyText('地址', o.deliveryAddress)} />
+                      <Field label='电话' value={o.phoneNumber || ''} onCopy={() => copyText('电话', o.phoneNumber || '')} />
+                      <Field label='忌口' value={(() => { try { const a = o.dietaryRestrictions ? JSON.parse(o.dietaryRestrictions) : []; return Array.isArray(a)? a.join('、') : String(a);} catch {return o.dietaryRestrictions || ''}})()} onCopy={() => copyText('忌口', (() => { try { const a = o.dietaryRestrictions ? JSON.parse(o.dietaryRestrictions) : []; return Array.isArray(a)? a.join('、') : String(a);} catch {return o.dietaryRestrictions || ''}})())} />
+                      <Field label='口味' value={(() => { try { const a = o.foodPreferences ? JSON.parse(o.foodPreferences) : []; return Array.isArray(a)? a.join('、') : String(a);} catch {return o.foodPreferences || ''}})()} onCopy={() => copyText('口味', (() => { try { const a = o.foodPreferences ? JSON.parse(o.foodPreferences) : []; return Array.isArray(a)? a.join('、') : String(a);} catch {return o.foodPreferences || ''}})())} />
+                      <Field label='金额' value={typeof o.budgetAmount === 'number' ? o.budgetAmount.toFixed(2) : ''} onCopy={() => copyText('金额', typeof o.budgetAmount === 'number' ? o.budgetAmount.toFixed(2) : '')} />
+                      <Field label='预约时间' value={o.deliveryTime || ''} onCopy={() => copyText('预约时间', o.deliveryTime || '')} />
+                    </div>
+                    <div className='mt-2 flex items-center gap-2'>
+                      <button className='rounded-md border bg-white px-2 py-1 text-xs hover:bg-gray-50' onClick={() => bindArrivalImage(o)}>绑定到达图</button>
+                      {o.arrivalImageUrl && <a href={o.arrivalImageUrl} target='_blank' rel='noreferrer' className='text-xs text-blue-600 underline'>预览</a>}
+                      {(o.paidAt || o.paymentStatus === 'paid') && <span className='ml-auto rounded bg-green-100 px-2 py-0.5 text-xs text-green-700'>已付款</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className='mb-2 text-sm font-semibold'>已结束</div>
+              <div className='flex flex-col gap-3'>
+                {(paidOnly ? items.filter(i => i.paidAt || i.paymentStatus === 'paid') : items).filter(o => isFinished(o)).map((o) => (
+                  <div key={o.id} className='rounded-lg border p-3 shadow-sm bg-white dark:bg-slate-900'>
+                    <div className='flex items-center justify-between'>
+                      <div className='font-mono text-xs text-gray-500'>#{o.orderNumber}</div>
+                      <select value={o.status} onChange={(e) => updateStatus(o, e.target.value)} className='h-8 rounded-md border px-2 text-xs'>
+                        <option value='draft'>草稿</option>
+                        <option value='submitted'>已提交</option>
+                        <option value='processing'>处理中</option>
+                        <option value='delivering'>配送中</option>
+                        <option value='completed'>已完成</option>
+                        <option value='cancelled'>已取消</option>
+                      </select>
+                    </div>
+                    <div className='mt-2 grid grid-cols-1 gap-2 text-sm'>
+                      <Field label='地址' value={o.deliveryAddress} onCopy={() => copyText('地址', o.deliveryAddress)} />
+                      <Field label='电话' value={o.phoneNumber || ''} onCopy={() => copyText('电话', o.phoneNumber || '')} />
+                      <Field label='忌口' value={(() => { try { const a = o.dietaryRestrictions ? JSON.parse(o.dietaryRestrictions) : []; return Array.isArray(a)? a.join('、') : String(a);} catch {return o.dietaryRestrictions || ''}})()} onCopy={() => copyText('忌口', (() => { try { const a = o.dietaryRestrictions ? JSON.parse(o.dietaryRestrictions) : []; return Array.isArray(a)? a.join('、') : String(a);} catch {return o.dietaryRestrictions || ''}})())} />
+                      <Field label='口味' value={(() => { try { const a = o.foodPreferences ? JSON.parse(o.foodPreferences) : []; return Array.isArray(a)? a.join('、') : String(a);} catch {return o.foodPreferences || ''}})()} onCopy={() => copyText('口味', (() => { try { const a = o.foodPreferences ? JSON.parse(o.foodPreferences) : []; return Array.isArray(a)? a.join('、') : String(a);} catch {return o.foodPreferences || ''}})())} />
+                      <Field label='金额' value={typeof o.budgetAmount === 'number' ? o.budgetAmount.toFixed(2) : ''} onCopy={() => copyText('金额', typeof o.budgetAmount === 'number' ? o.budgetAmount.toFixed(2) : '')} />
+                      <Field label='预约时间' value={o.deliveryTime || ''} onCopy={() => copyText('预约时间', o.deliveryTime || '')} />
+                    </div>
+                    <div className='mt-2 flex items-center gap-2'>
+                      {o.arrivalImageUrl && <a href={o.arrivalImageUrl} target='_blank' rel='noreferrer' className='text-xs text-blue-600 underline'>预览</a>}
+                      {(o.paidAt || o.paymentStatus === 'paid') && <span className='ml-auto rounded bg-green-100 px-2 py-0.5 text-xs text-green-700'>已付款</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 详情侧栏 */}
         {showDetail && selected && (
