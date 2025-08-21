@@ -636,7 +636,7 @@ function OrdersPage() {
                           <table className='w-full text-xs'>
                             <thead className='bg-gray-50'>
                               <tr>
-                                <th className='px-2 py-1 text-left'>时间</th>
+                                <th className='px-2 py-1 text-left'>支付时间</th>
                                 <th className='px-2 py-1 text-left'>状态</th>
                                 <th className='px-2 py-1 text-left'>金额</th>
                                 <th className='px-2 py-1 text-left'>渠道</th>
@@ -646,7 +646,7 @@ function OrdersPage() {
                             <tbody>
                               {detail.payments.map((p) => (
                                 <tr key={p.id} className='border-t'>
-                                  <td className='px-2 py-1'>{new Date(p.createdAt).toLocaleString()}</td>
+                                  <td className='px-2 py-1'>{new Date(p.paidAt || p.createdAt).toLocaleString()}</td>
                                   <td className='px-2 py-1'>{p.status}</td>
                                   <td className='px-2 py-1'>{p.amount?.toFixed?.(2)} {p.currency}</td>
                                   <td className='px-2 py-1'>{p.provider}</td>
