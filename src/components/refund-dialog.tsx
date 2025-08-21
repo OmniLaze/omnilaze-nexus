@@ -14,9 +14,10 @@ type RefundDialogProps = {
   onClose: () => void
   onSuccess?: () => void
   initialPayments?: AdminPayment[]
+  presetAmount?: number
 }
 
-export function RefundDialog({ open, orderId, onClose, onSuccess, initialPayments }: RefundDialogProps) {
+export function RefundDialog({ open, orderId, onClose, onSuccess, initialPayments, presetAmount }: RefundDialogProps) {
   const [loading, setLoading] = useState(false)
   const [payments, setPayments] = useState<AdminPayment[]>(initialPayments || [])
   const [selectedPaymentId, setSelectedPaymentId] = useState<string>('')
@@ -52,11 +53,16 @@ export function RefundDialog({ open, orderId, onClose, onSuccess, initialPayment
   }, [selectedPayment])
 
   useEffect(() => {
-    // 默认退款金额填充为剩余可退
+    // 默认退款金额填充：优先使用外部 presetAmount（限额 <= 剩余可退），否则退可退全额
     if (open && selectedPayment) {
-      setAmount(remaining > 0 ? remaining.toFixed(2) : '')
+      if (typeof presetAmount === 'number' && !Number.isNaN(presetAmount)) {
+        const preset = Math.max(0, Math.min(presetAmount, remaining))
+        setAmount(preset > 0 ? preset.toFixed(2) : '')
+      } else {
+        setAmount(remaining > 0 ? remaining.toFixed(2) : '')
+      }
     }
-  }, [open, selectedPayment, remaining])
+  }, [open, selectedPayment, remaining, presetAmount])
 
   const submit = async () => {
     if (!selectedPayment) {

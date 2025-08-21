@@ -5,6 +5,7 @@ import { Main } from '@/components/layout/main'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { api } from '@/lib/api'
+import { listPaymentsByOrder, AdminPayment } from '@/lib/api'
 import RefundDialog from '@/components/refund-dialog'
 import { toast } from 'sonner'
 
@@ -156,46 +157,7 @@ function OrdersPage() {
     URL.revokeObjectURL(url)
   }
 
-  const copyText = async (label: string, text?: string | null) => {
-    try {
-      if (!text) throw new Error('无内容')
-      await navigator.clipboard.writeText(String(text))
-      toast.success(`${label} 已复制`)
-    } catch {
-      try {
-        const ta = document.createElement('textarea')
-        ta.value = String(text || '')
-        document.body.appendChild(ta)
-        ta.select()
-        document.execCommand('copy')
-        document.body.removeChild(ta)
-        toast.success(`${label} 已复制`)
-      } catch {
-        toast.error('复制失败')
-      }
-    }
-  }
-
-  const isFinished = (o: AdminOrder) => o.status === 'completed' || o.status === 'cancelled' || !!o.arrivalImageUrl
-
-  const updateStatus = async (o: AdminOrder, next: string) => {
-    try {
-      const res = await api.post(`/admin/orders/${o.id}/status`, { status: next })
-      if (!res.data?.success) throw new Error(res.data?.message || '更新失败')
-      setItems(prev => prev.map(it => (it.id === o.id ? { ...it, status: next } : it)))
-      toast.success('状态已更新')
-    } catch (e: any) {
-      toast.error(e?.message || '更新失败')
-    }
-  }
-
-  const Field = ({ label, value, onCopy }: { label: string; value?: string | null; onCopy: () => void }) => (
-    <div className='flex items-start gap-2'>
-      <div className='shrink-0 w-16 text-xs text-gray-500'>{label}</div>
-      <div className='flex-1 break-words'>{value || '—'}</div>
-      <button className='shrink-0 rounded border px-2 py-0.5 text-xs hover:bg-gray-50' onClick={onCopy}>复制</button>
-    </div>
-  )
+  
 
   const bindArrivalImage = async (order: AdminOrder) => {
     const url = window.prompt(`为订单 ${order.orderNumber} 绑定到达图片 URL：`, '')
@@ -254,6 +216,8 @@ function OrdersPage() {
   }
 
   const [showRefund, setShowRefund] = useState(false)
+  const [refundPresetAmount, setRefundPresetAmount] = useState<number | undefined>(undefined)
+  const [refundInitialPayments, setRefundInitialPayments] = useState<AdminPayment[] | undefined>(undefined)
   const openRefund = () => {
     if (!detail || !detail.payments || detail.payments.length === 0) {
       toast.error('无可退款的支付记录')
@@ -262,6 +226,73 @@ function OrdersPage() {
     setShowRefund(true)
   }
   const closeDetail = () => setShowDetail(false)
+
+  const copyText = async (label: string, text?: string | null) => {
+    try {
+      if (!text) throw new Error('无内容')
+      await navigator.clipboard.writeText(String(text))
+      toast.success(`${label} 已复制`)
+    } catch {
+      try {
+        const ta = document.createElement('textarea')
+        ta.value = String(text || '')
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+        toast.success(`${label} 已复制`)
+      } catch {
+        toast.error('复制失败')
+      }
+    }
+  }
+
+  const isFinished = (o: AdminOrder) => o.status === 'completed' || o.status === 'cancelled' || !!o.arrivalImageUrl
+
+  const updateStatus = async (o: AdminOrder, next: string) => {
+    try {
+      const res = await api.post(`/admin/orders/${o.id}/status`, { status: next })
+      if (!res.data?.success) throw new Error(res.data?.message || '更新失败')
+      setItems(prev => prev.map(it => (it.id === o.id ? { ...it, status: next } : it)))
+      toast.success('状态已更新')
+    } catch (e: any) {
+      toast.error(e?.message || '更新失败')
+    }
+  }
+
+  const Field = ({ label, value, onCopy }: { label: string; value?: string | null; onCopy: () => void }) => (
+    <div className='flex items-start gap-2'>
+      <div className='shrink-0 w-16 text-xs text-gray-500'>{label}</div>
+      <div className='flex-1 break-words'>{value || '—'}</div>
+      <button className='shrink-0 rounded border px-2 py-0.5 text-xs hover:bg-gray-50' onClick={onCopy}>复制</button>
+    </div>
+  )
+
+  const openRefundQuick = async (o: AdminOrder) => {
+    try {
+      const input = window.prompt(`请输入订单 ${o.orderNumber} 实际使用金额（元）`, '')
+      if (input === null) return
+      const used = parseFloat((input || '').trim())
+      if (Number.isNaN(used) || used < 0) {
+        toast.error('请输入有效金额')
+        return
+      }
+      const payments = await listPaymentsByOrder(o.id)
+      const paidTotal = payments
+        .filter(p => p.status === 'succeeded' || p.status === 'partial_refunded' || p.status === 'refunded')
+        .reduce((sum, p) => sum + (p.amount || 0), 0)
+      const diff = Math.max(0, paidTotal - used)
+      if (diff <= 0) {
+        toast.info('无需退款：实际使用金额不小于已付金额')
+      }
+      setRefundInitialPayments(payments)
+      setRefundPresetAmount(diff)
+      setSelected(o)
+      setShowRefund(true)
+    } catch (e: any) {
+      toast.error(e?.message || '计算退款失败')
+    }
+  }
 
   return (
     <>
@@ -405,11 +436,15 @@ function OrdersPage() {
                       <Field label='口味' value={(() => { try { const a = o.foodPreferences ? JSON.parse(o.foodPreferences) : []; return Array.isArray(a)? a.join('、') : String(a);} catch {return o.foodPreferences || ''}})()} onCopy={() => copyText('口味', (() => { try { const a = o.foodPreferences ? JSON.parse(o.foodPreferences) : []; return Array.isArray(a)? a.join('、') : String(a);} catch {return o.foodPreferences || ''}})())} />
                       <Field label='金额' value={typeof o.budgetAmount === 'number' ? o.budgetAmount.toFixed(2) : ''} onCopy={() => copyText('金额', typeof o.budgetAmount === 'number' ? o.budgetAmount.toFixed(2) : '')} />
                       <Field label='预约时间' value={o.deliveryTime || ''} onCopy={() => copyText('预约时间', o.deliveryTime || '')} />
+                      <Field label='付款时间' value={o.paidAt ? new Date(o.paidAt).toLocaleString() : ''} onCopy={() => copyText('付款时间', o.paidAt ? new Date(o.paidAt).toLocaleString() : '')} />
                     </div>
                     <div className='mt-2 flex items-center gap-2'>
                       <button className='rounded-md border bg-white px-2 py-1 text-xs hover:bg-gray-50' onClick={() => bindArrivalImage(o)}>绑定到达图</button>
                       {o.arrivalImageUrl && <a href={o.arrivalImageUrl} target='_blank' rel='noreferrer' className='text-xs text-blue-600 underline'>预览</a>}
                       {(o.paidAt || o.paymentStatus === 'paid') && <span className='ml-auto rounded bg-green-100 px-2 py-0.5 text-xs text-green-700'>已付款</span>}
+                      {(o.paidAt || o.paymentStatus === 'paid') && (
+                        <button className='rounded-md border bg-white px-2 py-1 text-xs hover:bg-gray-50' onClick={() => openRefundQuick(o)}>退款</button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -438,10 +473,14 @@ function OrdersPage() {
                       <Field label='口味' value={(() => { try { const a = o.foodPreferences ? JSON.parse(o.foodPreferences) : []; return Array.isArray(a)? a.join('、') : String(a);} catch {return o.foodPreferences || ''}})()} onCopy={() => copyText('口味', (() => { try { const a = o.foodPreferences ? JSON.parse(o.foodPreferences) : []; return Array.isArray(a)? a.join('、') : String(a);} catch {return o.foodPreferences || ''}})())} />
                       <Field label='金额' value={typeof o.budgetAmount === 'number' ? o.budgetAmount.toFixed(2) : ''} onCopy={() => copyText('金额', typeof o.budgetAmount === 'number' ? o.budgetAmount.toFixed(2) : '')} />
                       <Field label='预约时间' value={o.deliveryTime || ''} onCopy={() => copyText('预约时间', o.deliveryTime || '')} />
+                      <Field label='付款时间' value={o.paidAt ? new Date(o.paidAt).toLocaleString() : ''} onCopy={() => copyText('付款时间', o.paidAt ? new Date(o.paidAt).toLocaleString() : '')} />
                     </div>
                     <div className='mt-2 flex items-center gap-2'>
                       {o.arrivalImageUrl && <a href={o.arrivalImageUrl} target='_blank' rel='noreferrer' className='text-xs text-blue-600 underline'>预览</a>}
                       {(o.paidAt || o.paymentStatus === 'paid') && <span className='ml-auto rounded bg-green-100 px-2 py-0.5 text-xs text-green-700'>已付款</span>}
+                      {(o.paidAt || o.paymentStatus === 'paid') && (
+                        <button className='rounded-md border bg-white px-2 py-1 text-xs hover:bg-gray-50' onClick={() => openRefundQuick(o)}>退款</button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -691,7 +730,8 @@ function OrdersPage() {
         <RefundDialog
           open={showRefund}
           orderId={selected.id}
-          initialPayments={detail?.payments as any}
+          initialPayments={(refundInitialPayments as any) || (detail?.payments as any)}
+          presetAmount={refundPresetAmount}
           onClose={() => setShowRefund(false)}
           onSuccess={() => {
             // 刷新详情以反映退款结果
