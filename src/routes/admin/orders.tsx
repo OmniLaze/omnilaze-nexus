@@ -261,10 +261,17 @@ function OrdersPage() {
   }
 
   const Field = ({ label, value, onCopy }: { label: string; value?: string | null; onCopy: () => void }) => (
-    <div className='flex items-start gap-2'>
-      <div className='shrink-0 w-16 text-xs text-gray-500'>{label}</div>
-      <div className='flex-1 break-words'>{value || '—'}</div>
-      <button className='shrink-0 rounded border px-2 py-0.5 text-xs hover:bg-gray-50' onClick={onCopy}>复制</button>
+    <div className='flex items-center gap-2 min-w-0'>
+      <div className='shrink-0 w-16 whitespace-nowrap text-xs text-gray-500'>{label}</div>
+      <div className='flex-1 min-w-0 truncate md:whitespace-normal md:overflow-visible'>
+        {value || '—'}
+      </div>
+      <button
+        className='shrink-0 rounded border px-2 py-0.5 text-xs hover:bg-gray-50'
+        onClick={onCopy}
+      >
+        复制
+      </button>
     </div>
   )
 
@@ -316,7 +323,7 @@ function OrdersPage() {
           </div>
         </div>
 
-        <div className='mb-3 flex flex-wrap items-center gap-3'>
+        <div className='mb-3 flex items-center gap-3 overflow-x-auto whitespace-nowrap md:flex-wrap md:overflow-visible md:whitespace-normal'>
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
@@ -664,6 +671,49 @@ function OrdersPage() {
                             申请退款（默认最近一笔）
                           </button>
                         </div>
+                        {/* 退款记录 */}
+                        {(() => {
+                          const refundEvents = (detail.payments || []).flatMap(p => (p as any).events ? (p as any).events.filter((e: any) => e.eventType === 'refund').map((e: any) => ({
+                            id: `${p.id}-${e.id}`,
+                            createdAt: e.createdAt,
+                            provider: p.provider,
+                            amount: (() => {
+                              const a = (e.payload as any)?.refundAmount || (e.payload as any)?.amount
+                              return typeof a === 'number' ? a : undefined
+                            })(),
+                            reason: (e.payload as any)?.reason,
+                            outRefundNo: (e.payload as any)?.outRefundNo,
+                          })) : [])
+                          return refundEvents.length > 0 ? (
+                            <div className='mt-4'>
+                              <div className='text-sm font-medium'>退款记录</div>
+                              <div className='mt-2 overflow-auto rounded border'>
+                                <table className='w-full text-xs'>
+                                  <thead className='bg-gray-50'>
+                                    <tr>
+                                      <th className='px-2 py-1 text-left'>时间</th>
+                                      <th className='px-2 py-1 text-left'>金额</th>
+                                      <th className='px-2 py-1 text-left'>渠道</th>
+                                      <th className='px-2 py-1 text-left'>原因</th>
+                                      <th className='px-2 py-1 text-left'>退款单号</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {refundEvents.map(r => (
+                                      <tr key={r.id} className='border-t'>
+                                        <td className='px-2 py-1'>{new Date(r.createdAt).toLocaleString()}</td>
+                                        <td className='px-2 py-1'>{typeof r.amount === 'number' ? r.amount.toFixed(2) : '-'}</td>
+                                        <td className='px-2 py-1'>{r.provider}</td>
+                                        <td className='px-2 py-1'>{r.reason || '-'}</td>
+                                        <td className='px-2 py-1 break-all'>{r.outRefundNo || '-'}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          ) : null
+                        })()}
                       </div>
                     )}
                     {/* 文本反馈 */}

@@ -1,5 +1,5 @@
 import Cookies from 'js-cookie'
-import { Outlet } from '@tanstack/react-router'
+import { Outlet, useRouterState } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 import { SearchProvider } from '@/context/search-context'
 import { SidebarProvider } from '@/components/ui/sidebar'
@@ -17,15 +17,20 @@ export function AuthenticatedLayout({ children }: Props) {
   const token = useAuthStore((s) => s.auth.accessToken)
   const navigate = useNavigate()
   const defaultOpen = Cookies.get('sidebar_state') !== 'false'
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
   
   useEffect(() => {
-    if (!token) {
+    if (!token && pathname !== '/admin/login') {
       navigate({ to: '/admin/login' })
     }
-  }, [token, navigate])
+  }, [token, navigate, pathname])
   
   // 如果没有token，显示加载状态等待重定向
   if (!token) {
+    // 登录页不需要显示跳转提示，直接渲染登录内容
+    if (pathname === '/admin/login') {
+      return <Outlet />
+    }
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
