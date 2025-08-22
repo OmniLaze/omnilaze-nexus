@@ -9,7 +9,7 @@
   "containerDefinitions": [
     {
       "name": "nexus",
-      "image": "442729101249.dkr.ecr.ap-southeast-1.amazonaws.com/omnilaze-nexus:notifications-20250822-073948",
+      "image": "442729101249.dkr.ecr.ap-southeast-1.amazonaws.com/omnilaze-nexus:20250822-100013",
       "essential": true,
       "portMappings": [{ "containerPort": 80 }],
       "environment": [],

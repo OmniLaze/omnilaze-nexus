@@ -13,6 +13,7 @@ import { handleServerError } from '@/utils/handle-server-error'
 import { FontProvider } from './context/font-context'
 import { ThemeProvider } from './context/theme-context'
 import './index.css'
+import { api } from '@/lib/api'
 // Generated Routes
 import { routeTree } from './routeTree.gen'
 
@@ -66,6 +67,35 @@ const queryClient = new QueryClient({
     },
   }),
 })
+
+// Ensure X-System-Key header is sent if available (env or localStorage)
+try {
+  const envKey = ((import.meta as any)?.env?.VITE_SYSTEM_API_KEY as string) || ''
+  const lsKey = typeof window !== 'undefined' ? window.localStorage.getItem('system_api_key') : null
+  const systemKey = envKey || lsKey
+  if (systemKey) {
+    // Set default header and add a lightweight interceptor as guard
+    api.defaults.headers.common = api.defaults.headers.common || {}
+    ;(api.defaults.headers.common as any)['X-System-Key'] = systemKey
+    api.interceptors.request.use((config) => {
+      config.headers = config.headers || {}
+      if (!(config.headers as any)['X-System-Key']) {
+        ;(config.headers as any)['X-System-Key'] = systemKey
+      }
+      return config
+    })
+  }
+} catch {
+  // ignore
+}
+
+// Expose build id for diagnostics and to force content-hash changes
+try {
+  const buildId = ((import.meta as any)?.env?.VITE_BUILD_ID as string) || 'dev'
+  if (typeof window !== 'undefined') {
+    ;(window as any).__NEXUS_BUILD_ID__ = buildId
+  }
+} catch {}
 
 // Create a new router instance
 const router = createRouter({

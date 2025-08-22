@@ -38,7 +38,23 @@ ECR_URI="$ACCOUNT_ID.dkr.ecr.$REGION.$ECR_DOMAIN_SUFFIX/$REPO"
 TAG=${IMAGE_TAG:-$(date +%Y%m%d-%H%M%S)}
 IMAGE="$ECR_URI:$TAG"
 aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "$ACCOUNT_ID.dkr.ecr.$REGION.$ECR_DOMAIN_SUFFIX"
-docker build -t "$IMAGE" .
+# Prefer same-origin '/v1' and proxy at nginx, but allow override
+BUILD_API_BASE_URL=${VITE_API_BASE_URL:-${FRONTEND_API_BASE_URL:-"/v1"}}
+BUILD_ID=${IMAGE_TAG:-$(date +%Y%m%d-%H%M%S)}
+# Pass VITE_* at build-time so the SPA calls the right backend and sends the system key header
+BUILD_NO_CACHE=${NO_CACHE:-}
+if [ -n "$BUILD_NO_CACHE" ]; then
+  BUILD_OPTS="--no-cache"
+else
+  BUILD_OPTS=""
+fi
+docker build $BUILD_OPTS \
+  --build-arg VITE_BASE_PATH="/admin/" \
+  --build-arg VITE_API_BASE_URL="$BUILD_API_BASE_URL" \
+  --build-arg VITE_BUILD_ID="$BUILD_ID" \
+  ${SYSTEM_API_KEY:+--build-arg VITE_SYSTEM_API_KEY="$SYSTEM_API_KEY"} \
+  -t "$IMAGE" .
+echo "🧩 Build args: VITE_BASE_PATH=/admin/ VITE_API_BASE_URL=$BUILD_API_BASE_URL VITE_BUILD_ID=$BUILD_ID VITE_SYSTEM_API_KEY=$([ -n "$SYSTEM_API_KEY" ] && echo "[set]" || echo "[empty]")"
 docker push "$IMAGE"
 echo "✅ 前端镜像已推送: $IMAGE"
 

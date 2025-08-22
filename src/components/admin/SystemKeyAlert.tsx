@@ -1,6 +1,5 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { ShieldAlert } from 'lucide-react'
-import React from 'react'
 
 export function SystemKeyAlert() {
   const hasEnvKey = !!import.meta.env.VITE_SYSTEM_API_KEY
@@ -22,4 +21,3 @@ export function SystemKeyAlert() {
     </Alert>
   )
 }
-

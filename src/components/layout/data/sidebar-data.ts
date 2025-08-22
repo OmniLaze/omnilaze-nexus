@@ -76,6 +76,12 @@ export const sidebarData: SidebarData = {
           url: '/admin/users',
           icon: IconUsers,
         },
+        // Pin Notifications into the primary Admin group for visibility
+        {
+          title: 'Notifications',
+          url: '/admin/notifications',
+          icon: IconNotification,
+        },
         {
           title: 'Secured by Clerk',
           icon: ClerkLogo,
@@ -161,6 +167,11 @@ export const sidebarData: SidebarData = {
     {
       title: 'Other',
       items: [
+        {
+          title: 'Notifications Admin',
+          url: '/admin/notifications',
+          icon: IconNotification,
+        },
         {
           title: 'Settings',
           icon: IconSettings,

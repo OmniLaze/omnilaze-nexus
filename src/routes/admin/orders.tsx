@@ -23,6 +23,10 @@ type AdminOrder = {
   foodPreferences?: string | null
   paymentStatus?: string | null
   paidAt?: string | null
+  etaEstimatedAt?: string | null
+  latestFeedbackRating?: number | null
+  latestFeedbackComment?: string | null
+  latestFeedbackAt?: string | null
 }
 
 type AdminOrderDetail = AdminOrder & {
@@ -41,6 +45,7 @@ type AdminOrderDetail = AdminOrder & {
   arrivalImageSource?: string | null
   arrivalImageTakenAt?: string | null
   arrivalImageImportedAt?: string | null
+  etaEstimatedAt?: string | null
   payments?: Array<{
     id: string
     provider: string
@@ -169,6 +174,26 @@ function OrdersPage() {
       setItems((prev) => prev.map((it) => (it.id === order.id ? { ...it, arrivalImageUrl: url } : it)))
     } catch (e: any) {
       toast.error(e?.message || '导入失败')
+    }
+  }
+
+  const setEtaQuick = async (order: AdminOrder) => {
+    const minutesStr = window.prompt(`为订单 ${order.orderNumber} 设置预计到达，输入分钟（例如45）或留空取消：`, '')
+    if (minutesStr === null || minutesStr.trim() === '') return
+    const mins = Number(minutesStr)
+    if (Number.isNaN(mins) || mins < 0) {
+      toast.error('请输入有效的分钟数')
+      return
+    }
+    try {
+      const res = await api.post(`/admin/orders/${order.id}/eta`, { minutes: mins, source: 'manual' })
+      if (!res.data?.success) throw new Error(res.data?.message || '设置失败')
+      const eta = res.data?.data?.eta_estimated_at || null
+      setItems(prev => prev.map(it => it.id === order.id ? { ...it, etaEstimatedAt: eta } : it))
+      setDetail(d => d && d.id === order.id ? { ...d, etaEstimatedAt: eta } : d)
+      toast.success('ETA已更新')
+    } catch (e: any) {
+      toast.error(e?.message || '设置失败')
     }
   }
 
@@ -370,6 +395,8 @@ function OrdersPage() {
                 <th className='px-3 py-2'>地址</th>
                 <th className='px-3 py-2'>金额</th>
                 <th className='px-3 py-2'>到达图</th>
+                <th className='px-3 py-2'>预计到达</th>
+                <th className='px-3 py-2'>评分</th>
                 <th className='px-3 py-2'>操作</th>
               </tr>
             </thead>
@@ -393,12 +420,20 @@ function OrdersPage() {
                   </td>
                   <td className='px-3 py-2'>{o.budgetAmount?.toFixed?.(2) ?? '-'}</td>
                   <td className='px-3 py-2'>{o.arrivalImageUrl ? '✅' : '—'}</td>
+                  <td className='px-3 py-2'>{o.etaEstimatedAt ? new Date(o.etaEstimatedAt).toLocaleString() : '—'}</td>
+                  <td className='px-3 py-2'>{typeof o.latestFeedbackRating === 'number' ? `${o.latestFeedbackRating}★` : '—'}</td>
                   <td className='px-3 py-2'>
                     <button
                       className='rounded-md border bg-white px-2 py-1 text-xs hover:bg-gray-50'
                       onClick={() => bindArrivalImage(o)}
                     >
                       绑定到达图
+                    </button>
+                    <button
+                      className='ml-2 rounded-md border bg-white px-2 py-1 text-xs hover:bg-gray-50'
+                      onClick={(e) => { e.stopPropagation(); setEtaQuick(o) }}
+                    >
+                      设置ETA
                     </button>
                     {o.arrivalImageUrl && (
                       <a
@@ -441,6 +476,7 @@ function OrdersPage() {
                       <Field label='口味' value={(() => { try { const a = o.foodPreferences ? JSON.parse(o.foodPreferences) : []; return Array.isArray(a)? a.join('、') : String(a);} catch {return o.foodPreferences || ''}})()} onCopy={() => copyText('口味', (() => { try { const a = o.foodPreferences ? JSON.parse(o.foodPreferences) : []; return Array.isArray(a)? a.join('、') : String(a);} catch {return o.foodPreferences || ''}})())} />
                       <Field label='金额' value={typeof o.budgetAmount === 'number' ? o.budgetAmount.toFixed(2) : ''} onCopy={() => copyText('金额', typeof o.budgetAmount === 'number' ? o.budgetAmount.toFixed(2) : '')} />
                       <Field label='预约时间' value={o.deliveryTime || ''} onCopy={() => copyText('预约时间', o.deliveryTime || '')} />
+                      <Field label='预计到达' value={o.etaEstimatedAt ? new Date(o.etaEstimatedAt).toLocaleString() : ''} onCopy={() => copyText('预计到达', o.etaEstimatedAt ? new Date(o.etaEstimatedAt).toLocaleString() : '')} />
                       <Field label='付款时间' value={o.paidAt ? new Date(o.paidAt).toLocaleString() : ''} onCopy={() => copyText('付款时间', o.paidAt ? new Date(o.paidAt).toLocaleString() : '')} />
                     </div>
                     <div className='mt-2 flex items-center gap-2'>
@@ -471,15 +507,16 @@ function OrdersPage() {
                         <option value='cancelled'>已取消</option>
                       </select>
                     </div>
-                    <div className='mt-2 grid grid-cols-1 gap-2 text-sm'>
+                  <div className='mt-2 grid grid-cols-1 gap-2 text-sm'>
                       <Field label='地址' value={o.deliveryAddress} onCopy={() => copyText('地址', o.deliveryAddress)} />
                       <Field label='电话' value={o.phoneNumber || ''} onCopy={() => copyText('电话', o.phoneNumber || '')} />
                       <Field label='忌口' value={(() => { try { const a = o.dietaryRestrictions ? JSON.parse(o.dietaryRestrictions) : []; return Array.isArray(a)? a.join('、') : String(a);} catch {return o.dietaryRestrictions || ''}})()} onCopy={() => copyText('忌口', (() => { try { const a = o.dietaryRestrictions ? JSON.parse(o.dietaryRestrictions) : []; return Array.isArray(a)? a.join('、') : String(a);} catch {return o.dietaryRestrictions || ''}})())} />
                       <Field label='口味' value={(() => { try { const a = o.foodPreferences ? JSON.parse(o.foodPreferences) : []; return Array.isArray(a)? a.join('、') : String(a);} catch {return o.foodPreferences || ''}})()} onCopy={() => copyText('口味', (() => { try { const a = o.foodPreferences ? JSON.parse(o.foodPreferences) : []; return Array.isArray(a)? a.join('、') : String(a);} catch {return o.foodPreferences || ''}})())} />
                       <Field label='金额' value={typeof o.budgetAmount === 'number' ? o.budgetAmount.toFixed(2) : ''} onCopy={() => copyText('金额', typeof o.budgetAmount === 'number' ? o.budgetAmount.toFixed(2) : '')} />
                       <Field label='预约时间' value={o.deliveryTime || ''} onCopy={() => copyText('预约时间', o.deliveryTime || '')} />
+                      <Field label='评分' value={typeof o.latestFeedbackRating === 'number' ? `${o.latestFeedbackRating}★` : ''} onCopy={() => copyText('评分', typeof o.latestFeedbackRating === 'number' ? String(o.latestFeedbackRating) : '')} />
                       <Field label='付款时间' value={o.paidAt ? new Date(o.paidAt).toLocaleString() : ''} onCopy={() => copyText('付款时间', o.paidAt ? new Date(o.paidAt).toLocaleString() : '')} />
-                    </div>
+                  </div>
                     <div className='mt-2 flex items-center gap-2'>
                       {o.arrivalImageUrl && <a href={o.arrivalImageUrl} target='_blank' rel='noreferrer' className='text-xs text-blue-600 underline'>预览</a>}
                       {(o.paidAt || o.paymentStatus === 'paid') && <span className='ml-auto rounded bg-green-100 px-2 py-0.5 text-xs text-green-700'>已付款</span>}
