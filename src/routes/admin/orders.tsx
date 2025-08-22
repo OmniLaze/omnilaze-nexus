@@ -313,7 +313,7 @@ function OrdersPage() {
     }
   }
 
-  const Field = ({ label, value, onCopy }: { label: string; value?: string | null; onCopy: () => void }) => (
+  const Field = ({ label, value, onCopy, buttonText = '复制', onClick }: { label: string; value?: string | null; onCopy: () => void; buttonText?: string; onClick?: () => void }) => (
     <div className='flex items-center gap-2 min-w-0'>
       <div className='shrink-0 w-16 whitespace-nowrap text-xs text-gray-500'>{label}</div>
       <div className='flex-1 min-w-0 truncate md:whitespace-normal md:overflow-visible'>
@@ -321,9 +321,9 @@ function OrdersPage() {
       </div>
       <button
         className='shrink-0 rounded border px-2 py-0.5 text-xs hover:bg-gray-50'
-        onClick={onCopy}
+        onClick={() => (onClick ? onClick() : onCopy())}
       >
-        复制
+        {buttonText}
       </button>
     </div>
   )
@@ -501,7 +501,13 @@ function OrdersPage() {
                       <Field label='口味' value={(() => { try { const a = o.foodPreferences ? JSON.parse(o.foodPreferences) : []; return Array.isArray(a)? a.join('、') : String(a);} catch {return o.foodPreferences || ''}})()} onCopy={() => copyText('口味', (() => { try { const a = o.foodPreferences ? JSON.parse(o.foodPreferences) : []; return Array.isArray(a)? a.join('、') : String(a);} catch {return o.foodPreferences || ''}})())} />
                       <Field label='金额' value={typeof o.budgetAmount === 'number' ? o.budgetAmount.toFixed(2) : ''} onCopy={() => copyText('金额', typeof o.budgetAmount === 'number' ? o.budgetAmount.toFixed(2) : '')} />
                       <Field label='预约时间' value={o.deliveryTime || ''} onCopy={() => copyText('预约时间', o.deliveryTime || '')} />
-                      <Field label='预计到达' value={o.etaEstimatedAt ? new Date(o.etaEstimatedAt).toLocaleString() : ''} onCopy={() => copyText('预计到达', o.etaEstimatedAt ? new Date(o.etaEstimatedAt).toLocaleString() : '')} />
+                      <Field
+                        label='预计到达'
+                        value={o.etaEstimatedAt ? new Date(o.etaEstimatedAt).toLocaleString() : ''}
+                        onCopy={() => copyText('预计到达', o.etaEstimatedAt ? new Date(o.etaEstimatedAt).toLocaleString() : '')}
+                        buttonText='设置'
+                        onClick={() => setEtaQuick(o)}
+                      />
                       <Field label='付款时间' value={o.paidAt ? new Date(o.paidAt).toLocaleString() : ''} onCopy={() => copyText('付款时间', o.paidAt ? new Date(o.paidAt).toLocaleString() : '')} />
                     </div>
                     <div className='mt-2 flex items-center gap-2'>
