@@ -24,9 +24,7 @@ type AdminOrder = {
   paymentStatus?: string | null
   paidAt?: string | null
   etaEstimatedAt?: string | null
-  latestFeedbackRating?: number | null
-  latestFeedbackComment?: string | null
-  latestFeedbackAt?: string | null
+  voiceFeedbackCount?: number
 }
 
 type AdminOrderDetail = AdminOrder & {
@@ -63,6 +61,13 @@ type AdminOrderDetail = AdminOrder & {
     id: string
     rating: number
     comment?: string | null
+    createdAt: string
+  }>
+  voiceFeedbacks?: Array<{
+    id: string
+    audioUrl: string
+    durationSec?: number | null
+    transcript?: string | null
     createdAt: string
   }>
 }
@@ -273,7 +278,31 @@ function OrdersPage() {
 
   const isFinished = (o: AdminOrder) => o.status === 'completed' || o.status === 'cancelled' || !!o.arrivalImageUrl
 
+  const getStatusDisplayText = (status: string): string => {
+    const statusMap: Record<string, string> = {
+      'draft': '未支付',
+      'submitted': '未支付', 
+      'processing': '已支付',
+      'delivering': '配送中',
+      'completed': '完成',
+      'cancelled': '已取消',
+      'unpaid': '未支付',
+      'paid': '已支付'
+    }
+    return statusMap[status] || status
+  }
+
   const updateStatus = async (o: AdminOrder, next: string) => {
+    // 只允许Nexus设置特定状态：
+    // - 只能将已支付订单设置为"配送中"
+    // - 到达图片会自动触发"完成"状态
+    const allowedStatuses = ['delivering', 'cancelled'];
+    
+    if (!allowedStatuses.includes(next)) {
+      toast.error('该状态不能手动设置，请使用系统自动状态管理');
+      return;
+    }
+    
     try {
       const res = await api.post(`/admin/orders/${o.id}/status`, { status: next })
       if (!res.data?.success) throw new Error(res.data?.message || '更新失败')
@@ -353,11 +382,10 @@ function OrdersPage() {
             className='h-9 rounded-md border px-3 text-sm'
           >
             <option value=''>全部状态</option>
-            <option value='draft'>草稿</option>
-            <option value='submitted'>已提交</option>
-            <option value='processing'>处理中</option>
+            <option value='unpaid'>未支付</option>
+            <option value='paid'>已支付</option>
             <option value='delivering'>配送中</option>
-            <option value='completed'>已完成</option>
+            <option value='completed'>完成</option>
             <option value='cancelled'>已取消</option>
           </select>
           <label className='flex items-center gap-2 text-sm'>
@@ -396,7 +424,7 @@ function OrdersPage() {
                 <th className='px-3 py-2'>金额</th>
                 <th className='px-3 py-2'>到达图</th>
                 <th className='px-3 py-2'>预计到达</th>
-                <th className='px-3 py-2'>评分</th>
+                <th className='px-3 py-2'>语音</th>
                 <th className='px-3 py-2'>操作</th>
               </tr>
             </thead>
@@ -404,7 +432,7 @@ function OrdersPage() {
               {(paidOnly ? items.filter(i => i.paidAt || i.paymentStatus === 'paid') : items).map((o) => (
                 <tr key={o.id} className='border-t hover:bg-gray-50 cursor-pointer' onClick={() => openDetail(o)}>
                   <td className='px-3 py-2 font-mono'>{o.orderNumber}</td>
-                  <td className='px-3 py-2'>{o.status}</td>
+                  <td className='px-3 py-2'>{getStatusDisplayText(o.status)}</td>
                   <td className='px-3 py-2'>{new Date(o.createdAt).toLocaleString()}</td>
                   <td className='px-3 py-2'>{o.userSequence ?? '—'}</td>
                   <td className='px-3 py-2'>{o.phoneNumber || '—'}</td>
@@ -421,7 +449,7 @@ function OrdersPage() {
                   <td className='px-3 py-2'>{o.budgetAmount?.toFixed?.(2) ?? '-'}</td>
                   <td className='px-3 py-2'>{o.arrivalImageUrl ? '✅' : '—'}</td>
                   <td className='px-3 py-2'>{o.etaEstimatedAt ? new Date(o.etaEstimatedAt).toLocaleString() : '—'}</td>
-                  <td className='px-3 py-2'>{typeof o.latestFeedbackRating === 'number' ? `${o.latestFeedbackRating}★` : '—'}</td>
+                  <td className='px-3 py-2'>{o.voiceFeedbackCount && o.voiceFeedbackCount > 0 ? `${o.voiceFeedbackCount}条` : '—'}</td>
                   <td className='px-3 py-2'>
                     <button
                       className='rounded-md border bg-white px-2 py-1 text-xs hover:bg-gray-50'
@@ -461,12 +489,9 @@ function OrdersPage() {
                     <div className='flex items-center justify-between'>
                       <div className='font-mono text-xs text-gray-500'>#{o.orderNumber}</div>
                       <select value={o.status} onChange={(e) => updateStatus(o, e.target.value)} className='h-8 rounded-md border px-2 text-xs'>
-                        <option value='draft'>草稿</option>
-                        <option value='submitted'>已提交</option>
-                        <option value='processing'>处理中</option>
-                        <option value='delivering'>配送中</option>
-                        <option value='completed'>已完成</option>
-                        <option value='cancelled'>已取消</option>
+                        <option value={o.status}>{getStatusDisplayText(o.status)}</option>
+                        {o.status !== 'delivering' && o.status !== 'cancelled' && <option value='delivering'>配送中</option>}
+                        {o.status !== 'cancelled' && <option value='cancelled'>已取消</option>}
                       </select>
                     </div>
                     <div className='mt-2 grid grid-cols-1 gap-2 text-sm'>
@@ -499,12 +524,9 @@ function OrdersPage() {
                     <div className='flex items-center justify-between'>
                       <div className='font-mono text-xs text-gray-500'>#{o.orderNumber}</div>
                       <select value={o.status} onChange={(e) => updateStatus(o, e.target.value)} className='h-8 rounded-md border px-2 text-xs'>
-                        <option value='draft'>草稿</option>
-                        <option value='submitted'>已提交</option>
-                        <option value='processing'>处理中</option>
-                        <option value='delivering'>配送中</option>
-                        <option value='completed'>已完成</option>
-                        <option value='cancelled'>已取消</option>
+                        <option value={o.status}>{getStatusDisplayText(o.status)}</option>
+                        {o.status !== 'delivering' && o.status !== 'cancelled' && <option value='delivering'>配送中</option>}
+                        {o.status !== 'cancelled' && <option value='cancelled'>已取消</option>}
                       </select>
                     </div>
                   <div className='mt-2 grid grid-cols-1 gap-2 text-sm'>
@@ -514,7 +536,7 @@ function OrdersPage() {
                       <Field label='口味' value={(() => { try { const a = o.foodPreferences ? JSON.parse(o.foodPreferences) : []; return Array.isArray(a)? a.join('、') : String(a);} catch {return o.foodPreferences || ''}})()} onCopy={() => copyText('口味', (() => { try { const a = o.foodPreferences ? JSON.parse(o.foodPreferences) : []; return Array.isArray(a)? a.join('、') : String(a);} catch {return o.foodPreferences || ''}})())} />
                       <Field label='金额' value={typeof o.budgetAmount === 'number' ? o.budgetAmount.toFixed(2) : ''} onCopy={() => copyText('金额', typeof o.budgetAmount === 'number' ? o.budgetAmount.toFixed(2) : '')} />
                       <Field label='预约时间' value={o.deliveryTime || ''} onCopy={() => copyText('预约时间', o.deliveryTime || '')} />
-                      <Field label='评分' value={typeof o.latestFeedbackRating === 'number' ? `${o.latestFeedbackRating}★` : ''} onCopy={() => copyText('评分', typeof o.latestFeedbackRating === 'number' ? String(o.latestFeedbackRating) : '')} />
+                      <Field label='语音反馈' value={o.voiceFeedbackCount ? `${o.voiceFeedbackCount}条` : ''} onCopy={() => copyText('语音反馈', o.voiceFeedbackCount ? `${o.voiceFeedbackCount}` : '')} />
                       <Field label='付款时间' value={o.paidAt ? new Date(o.paidAt).toLocaleString() : ''} onCopy={() => copyText('付款时间', o.paidAt ? new Date(o.paidAt).toLocaleString() : '')} />
                   </div>
                     <div className='mt-2 flex items-center gap-2'>
@@ -550,7 +572,7 @@ function OrdersPage() {
                 <div className='grid grid-cols-2 gap-4'>
                   <div>
                     <div className='text-xs text-gray-500'>状态</div>
-                    <div>{selected.status}</div>
+                    <div>{getStatusDisplayText(selected.status)}</div>
                   </div>
                   <div>
                     <div className='text-xs text-gray-500'>时间</div>
@@ -623,6 +645,30 @@ function OrdersPage() {
                         {Array.isArray(detail.metadata?.foodType) ? detail.metadata.foodType.join('、') : JSON.stringify(detail.metadata || {})}
                       </div>
                     </div>
+                    {/* 语音反馈 */}
+                    {detail.voiceFeedbacks && detail.voiceFeedbacks.length > 0 && (
+                      <div>
+                        <div className='text-sm font-medium'>语音反馈</div>
+                        <ul className='mt-2 space-y-3'>
+                          {detail.voiceFeedbacks.map((vf) => (
+                            <li key={vf.id} className='rounded border p-2'>
+                              <div className='flex items-center justify-between text-xs text-gray-500'>
+                                <span>{new Date(vf.createdAt).toLocaleString()}</span>
+                                {typeof vf.durationSec === 'number' && <span>{vf.durationSec}s</span>}
+                              </div>
+                              <div className='mt-2'>
+                                <audio controls src={vf.audioUrl} className='w-full' />
+                              </div>
+                              {vf.transcript && (
+                                <div className='mt-2 text-xs text-gray-600 break-words'>
+                                  文本：{vf.transcript}
+                                </div>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                     <div className='grid grid-cols-2 gap-4'>
                       <div>
                         <div className='text-xs text-gray-500'>忌口</div>
