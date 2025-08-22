@@ -3,11 +3,11 @@ import { useEffect, useState } from 'react'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ThemeSwitch } from '@/components/theme-switch'
-import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Button } from '@/components/ui/button'
 import { IconPlus } from '@tabler/icons-react'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
+import { SystemKeyAlert } from '@/components/admin/SystemKeyAlert'
 import { CreateInviteCodeDialog } from '@/features/invite-codes/components/create-invite-code-dialog'
 
 type InviteCodeRow = {
@@ -38,6 +38,7 @@ function InviteCodesPage() {
   const [codes, setCodes] = useState<InviteCodeRow[]>([])
   const [invitations, setInvitations] = useState<InvitationRow[]>([])
   const [loading, setLoading] = useState(false)
+  const [authError, setAuthError] = useState(false)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
 
   const fetchCodes = async () => {
@@ -46,8 +47,15 @@ function InviteCodesPage() {
       const res = await api.get('/admin/invite-codes')
       if (!res.data?.success) throw new Error(res.data?.message || '加载失败')
       setCodes(res.data.data || [])
+      setAuthError(false)
     } catch (e: any) {
-      toast.error(e?.message || '加载失败')
+      if (e?.response?.status === 401) {
+        setAuthError(true)
+        toast.error('未授权：可能缺少系统密钥')
+      } else {
+        setAuthError(false)
+        toast.error(e?.message || '加载失败')
+      }
     } finally {
       setLoading(false)
     }
@@ -58,8 +66,15 @@ function InviteCodesPage() {
       const res = await api.get('/admin/invitations', { params: { limit: 100 } })
       if (!res.data?.success) throw new Error(res.data?.message || '加载失败')
       setInvitations(res.data.data?.items || [])
+      setAuthError(false)
     } catch (e: any) {
-      toast.error(e?.message || '加载失败')
+      if (e?.response?.status === 401) {
+        setAuthError(true)
+        toast.error('未授权：可能缺少系统密钥')
+      } else {
+        setAuthError(false)
+        toast.error(e?.message || '加载失败')
+      }
     } finally {
       setLoading(false)
     }
@@ -76,10 +91,10 @@ function InviteCodesPage() {
       <Header>
         <div className='ml-auto flex items-center space-x-4'>
           <ThemeSwitch />
-          <ProfileDropdown />
         </div>
       </Header>
       <Main>
+        {authError && <SystemKeyAlert />}
         <div className='mb-2 flex items-center justify-between'>
           <h1 className='text-2xl font-bold tracking-tight'>邀请管理</h1>
           {tab === 'codes' && (

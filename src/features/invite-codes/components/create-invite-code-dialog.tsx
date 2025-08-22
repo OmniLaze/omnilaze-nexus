@@ -25,6 +25,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
 import { useState } from 'react'
+import { SystemKeyAlert } from '@/components/admin/SystemKeyAlert'
 import { useAuthStore } from '@/stores/authStore'
 
 const formSchema = z.object({
@@ -55,6 +56,7 @@ export function CreateInviteCodeDialog({ open, onOpenChange, onSuccess }: Props)
   const onSubmit = async (values: CreateInviteCodeForm) => {
     try {
       setLoading(true)
+      setAuth401(false)
       
       // 检查认证状态
       const currentToken = useAuthStore.getState().auth.accessToken
@@ -79,6 +81,9 @@ export function CreateInviteCodeDialog({ open, onOpenChange, onSuccess }: Props)
       let errorMessage = '创建邀请码失败'
       if (error?.response?.status === 500) {
         errorMessage = '服务器内部错误，请检查认证状态或联系管理员'
+      } else if (error?.response?.status === 401) {
+        setAuth401(true)
+        errorMessage = '未授权：可能缺少系统密钥'
       } else if (error?.response?.data?.message) {
         errorMessage = error.response.data.message
       } else if (error?.message) {
@@ -90,6 +95,8 @@ export function CreateInviteCodeDialog({ open, onOpenChange, onSuccess }: Props)
       setLoading(false)
     }
   }
+
+  const [auth401, setAuth401] = useState(false)
 
   const generateRandomCode = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -111,6 +118,7 @@ export function CreateInviteCodeDialog({ open, onOpenChange, onSuccess }: Props)
       }}
     >
       <DialogContent className='sm:max-w-md'>
+        {auth401 && <SystemKeyAlert />}
         <DialogHeader className='text-left'>
           <DialogTitle className='flex items-center gap-2'>
             <IconTicket /> 创建邀请码

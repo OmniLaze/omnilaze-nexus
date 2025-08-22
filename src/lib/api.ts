@@ -15,8 +15,8 @@ api.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`
   }
   
-  // 添加系统密钥用于管理端点（从环境变量读取）
-  const systemKey = import.meta.env.VITE_SYSTEM_API_KEY
+  // 添加系统密钥用于管理端点（优先环境变量，其次本地存储）
+  const systemKey = import.meta.env.VITE_SYSTEM_API_KEY || (typeof window !== 'undefined' ? window.localStorage.getItem('system_api_key') : null)
   if (systemKey) {
     config.headers = config.headers || {}
     config.headers['X-System-Key'] = systemKey

@@ -3,7 +3,6 @@ import { useState } from 'react'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ThemeSwitch } from '@/components/theme-switch'
-import { ProfileDropdown } from '@/components/profile-dropdown'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
 
@@ -45,7 +44,6 @@ function DevOpsPage() {
       <Header>
         <div className='ml-auto flex items-center space-x-4'>
           <ThemeSwitch />
-          <ProfileDropdown />
         </div>
       </Header>
       <Main>

@@ -1,0 +1,26 @@
+{
+  "family": "omnilaze-nexus",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::442729101249:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::442729101249:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "nexus",
+      "image": "442729101249.dkr.ecr.ap-southeast-1.amazonaws.com/omnilaze-nexus:notifications-20250822-073948",
+      "essential": true,
+      "portMappings": [{ "containerPort": 80 }],
+      "environment": [],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/omnilaze-nexus-service",
+          "awslogs-region": "ap-southeast-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

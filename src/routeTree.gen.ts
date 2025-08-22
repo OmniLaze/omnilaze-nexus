@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminOrdersRouteImport } from './routes/admin/orders'
+import { Route as AdminNotificationsRouteImport } from './routes/admin/notifications'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as AdminInviteCodesRouteImport } from './routes/admin/invite-codes'
 import { Route as AdminDevopsRouteImport } from './routes/admin/devops'
@@ -73,6 +74,11 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
 const AdminOrdersRoute = AdminOrdersRouteImport.update({
   id: '/orders',
   path: '/orders',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminNotificationsRoute = AdminNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => AdminRouteRoute,
 } as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
@@ -240,6 +246,7 @@ export interface FileRoutesByFullPath {
   '/admin/devops': typeof AdminDevopsRoute
   '/admin/invite-codes': typeof AdminInviteCodesRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/users': typeof AdminUsersRouteWithChildren
   '/admin/': typeof AdminIndexRoute
@@ -273,6 +280,7 @@ export interface FileRoutesByTo {
   '/admin/devops': typeof AdminDevopsRoute
   '/admin/invite-codes': typeof AdminInviteCodesRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin': typeof AdminIndexRoute
   '/admin/settings/account': typeof AdminSettingsAccountRoute
@@ -310,6 +318,7 @@ export interface FileRoutesById {
   '/admin/devops': typeof AdminDevopsRoute
   '/admin/invite-codes': typeof AdminInviteCodesRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/users': typeof AdminUsersRouteWithChildren
   '/admin/': typeof AdminIndexRoute
@@ -348,6 +357,7 @@ export interface FileRouteTypes {
     | '/admin/devops'
     | '/admin/invite-codes'
     | '/admin/login'
+    | '/admin/notifications'
     | '/admin/orders'
     | '/admin/users'
     | '/admin/'
@@ -381,6 +391,7 @@ export interface FileRouteTypes {
     | '/admin/devops'
     | '/admin/invite-codes'
     | '/admin/login'
+    | '/admin/notifications'
     | '/admin/orders'
     | '/admin'
     | '/admin/settings/account'
@@ -417,6 +428,7 @@ export interface FileRouteTypes {
     | '/admin/devops'
     | '/admin/invite-codes'
     | '/admin/login'
+    | '/admin/notifications'
     | '/admin/orders'
     | '/admin/users'
     | '/admin/'
@@ -493,6 +505,13 @@ declare module '@tanstack/react-router' {
       path: '/orders'
       fullPath: '/admin/orders'
       preLoaderRoute: typeof AdminOrdersRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/notifications': {
+      id: '/admin/notifications'
+      path: '/notifications'
+      fullPath: '/admin/notifications'
+      preLoaderRoute: typeof AdminNotificationsRouteImport
       parentRoute: typeof AdminRouteRoute
     }
     '/admin/login': {
@@ -737,6 +756,7 @@ interface AdminRouteRouteChildren {
   AdminDevopsRoute: typeof AdminDevopsRoute
   AdminInviteCodesRoute: typeof AdminInviteCodesRoute
   AdminLoginRoute: typeof AdminLoginRoute
+  AdminNotificationsRoute: typeof AdminNotificationsRoute
   AdminOrdersRoute: typeof AdminOrdersRoute
   AdminUsersRoute: typeof AdminUsersRouteWithChildren
   AdminIndexRoute: typeof AdminIndexRoute
@@ -751,6 +771,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminDevopsRoute: AdminDevopsRoute,
   AdminInviteCodesRoute: AdminInviteCodesRoute,
   AdminLoginRoute: AdminLoginRoute,
+  AdminNotificationsRoute: AdminNotificationsRoute,
   AdminOrdersRoute: AdminOrdersRoute,
   AdminUsersRoute: AdminUsersRouteWithChildren,
   AdminIndexRoute: AdminIndexRoute,
